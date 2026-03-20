@@ -20,6 +20,7 @@ const int SHORTEST_EXPLOSION_LINE = 3;
 
 /**
  * Square game board state with r/w access to individual cells.
+ * The Board owns all Candy pointers stored in its grid.
  */
 class Board
 {
@@ -64,11 +65,11 @@ public:
     bool load(const std::string& input_path);
 
     /**
-     * Get a reference to the candy piece at the given coordinates if there is one. 
-     * 
+     * Get a reference to the candy piece at the given coordinates if there is one.
+     *
      * @param x 0-indexed, left to right, x coordinate of the cell
      * @param y 0-indexed, top to bottom, y coordinate of the cell
-     * @return a pointer to the candy at the given coordinates, 
+     * @return a pointer to the candy at the given coordinates,
      *   if the coordinates are valid and the cell is not empty; nullptr otherwise.
      */
     Candy* getCell(int x, int y) const;
@@ -88,8 +89,30 @@ public:
     int getHeight() const;
 
 private:
+    /// Graella 2D de punters a caramels, indexada com m_cells[x][y]. nullptr = cel·la buida.
+    std::vector<std::vector<Candy*>> m_cells;
 
-    /// Students can add as many protected methods and attributes as needed.
+    /// Amplada del tauler (nombre de columnes).
+    int m_width;
+
+    /// Alçada del tauler (nombre de files).
+    int m_height;
+
+    /// @return true si (x, y) és dins dels límits del tauler.
+    bool isValid(int x, int y) const;
+
+    /**
+     * Compta els caramels consecutius del mateix tipus que (x,y) a partir de (x,y)
+     * movent-se en la direcció (dx, dy). El caramel a (x,y) NO es compta.
+     * @return nombre de caramels iguals trobats en aquella direcció.
+     */
+    int countInDirection(int x, int y, int dx, int dy) const;
+
+    /// Deixa caure tots els caramels cap avall columna per columna per omplir els buits.
+    void dropCandies();
+
+    /// Elimina i retorna tots els caramels que han d'explotar.
+    std::vector<Candy*> removeExplodingCandies();
 };
 
 #endif
