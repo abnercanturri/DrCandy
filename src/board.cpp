@@ -133,7 +133,7 @@ bool Board::load(const std::string& input_path)
     //Creem objecte per llegir
     std::ifstream in(input_path);
     
-    if (!in.is_open());
+    if (!in.is_open())
     {
         return false;
     }
