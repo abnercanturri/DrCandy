@@ -90,6 +90,9 @@ public:
 private:
 
     /// Students can add as many protected methods and attributes as needed.
+    int m_width;
+    int m_height;
+    Candy*** m_grid;
 };
 
 #endif
