@@ -259,9 +259,26 @@ bool Board::load(const std::string& input_path)
     int file_width, file_height;
     in >> file_width >> file_height;
 
-    //Recorrer el fitxer i omplir el tauler
+    //Esborrar graella vella
     for (int y = 0; y < file_height; y++)
     {
+        //Esborrar files velles
+        delete[] m_grid[y];
+    }
+    //Esborrar estructura principal vella
+    delete[] m_grid;
+
+    //Actualitzem dimensions
+    m_width = file_width;
+    m_height = file_height;
+
+    //Creem la nova graella
+    m_grid = new Candy * *[m_height];
+    for (int y = 0; y < m_height; y++)
+    {
+        m_grid[y] = new Candy * [m_width];
+
+        //Llegim i omplim caramels
         for (int x = 0; x < file_width; x++)
         {
             int candy_val;
