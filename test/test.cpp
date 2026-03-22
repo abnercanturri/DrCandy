@@ -58,14 +58,12 @@ static bool testDimensions()
     std::cout << "--- Dimensions ---\n";
     bool allPassed = true;
 
-    // Dimensions per defecte
     Board defaultBoard;
     allPassed &= checkTest("L'amplada per defecte és 10",
         defaultBoard.getWidth() == DEFAULT_BOARD_WIDTH);
     allPassed &= checkTest("L'alçada per defecte és 10",
         defaultBoard.getHeight() == DEFAULT_BOARD_HEIGHT);
 
-    // Dimensions personalitzades
     Board smallBoard(4, 6);
     allPassed &= checkTest("L'amplada personalitzada és 4", smallBoard.getWidth() == 4);
     allPassed &= checkTest("L'alçada personalitzada és 6", smallBoard.getHeight() == 6);
@@ -80,11 +78,9 @@ static bool testGetSetCell()
 
     Board board(5, 5);
 
-    // El tauler buit retorna nullptr a tot arreu
     allPassed &= checkTest("Una cel·la buida retorna nullptr",
         board.getCell(0, 0) == nullptr);
 
-    // Assignem un caramel i el recuperem
     Candy* red = new Candy(CandyType::TYPE_RED);
     board.setCell(red, 2, 3);
     allPassed &= checkTest("getCell retorna el caramel que s'ha assignat",
@@ -92,25 +88,21 @@ static bool testGetSetCell()
     allPassed &= checkTest("getCell retorna el tipus correcte després d'assignar",
         board.getCell(2, 3)->getType() == CandyType::TYPE_RED);
 
-    // Les cel·les adjacents segueixen buides
     allPassed &= checkTest("La cel·la adjacent segueix sent nullptr",
         board.getCell(2, 4) == nullptr);
 
-    // NOTA: setCell del teu amic NO fa delete de l'anterior.
-    // Per evitar memory leak als tests, fem delete manual abans de sobreescriure.
+    // NOTA: setCell no fa delete de l'anterior — fem delete manual per evitar memory leak
     delete board.getCell(2, 3);
     Candy* blue = new Candy(CandyType::TYPE_BLUE);
     board.setCell(blue, 2, 3);
     allPassed &= checkTest("Sobreescriure una cel·la actualitza el tipus",
         board.getCell(2, 3)->getType() == CandyType::TYPE_BLUE);
 
-    // Buidar una cel·la amb nullptr
     delete board.getCell(2, 3);
     board.setCell(nullptr, 2, 3);
     allPassed &= checkTest("Assignar nullptr buida la cel·la",
         board.getCell(2, 3) == nullptr);
 
-    // Coordenades fora de rang retornen nullptr sense petar
     allPassed &= checkTest("getCell fora de rang (x negatiu) retorna nullptr",
         board.getCell(-1, 0) == nullptr);
     allPassed &= checkTest("getCell fora de rang (y massa gran) retorna nullptr",
@@ -126,20 +118,16 @@ static bool testShouldExplodeNoCandies()
 
     Board board(5, 5);
 
-    // Una cel·la buida no explota mai
     allPassed &= checkTest("Una cel·la buida no explota",
         board.shouldExplode(2, 2) == false);
 
-    // Fora de rang no explota mai
     allPassed &= checkTest("Fora de rang no explota",
         board.shouldExplode(-1, 0) == false);
 
-    // Un sol caramel: no hi ha línia de 3 possible
     board.setCell(new Candy(CandyType::TYPE_RED), 2, 2);
     allPassed &= checkTest("Un caramel aïllat no explota",
         board.shouldExplode(2, 2) == false);
 
-    // Dos caramels del mateix tipus: encara no és suficient
     board.setCell(new Candy(CandyType::TYPE_RED), 3, 2);
     allPassed &= checkTest("Una línia de 2 no explota",
         board.shouldExplode(2, 2) == false);
@@ -170,7 +158,6 @@ static bool testShouldExplodeHorizontal()
     allPassed &= checkTest("El caramel dret d'una horitzontal de 3 explota",
         board.shouldExplode(2, row));
 
-    // Un tipus diferent adjacent NO ha d'explotar
     board.setCell(new Candy(CandyType::TYPE_BLUE), 3, row);
     allPassed &= checkTest("Un blau adjacent a una línia de rojos no explota",
         board.shouldExplode(3, row) == false);
@@ -194,6 +181,10 @@ static bool testShouldExplodeVertical()
         board.shouldExplode(col, 8));
     allPassed &= checkTest("El caramel superior d'una vertical de 3 explota",
         board.shouldExplode(col, 7));
+
+    board.setCell(new Candy(CandyType::TYPE_GREEN), col, 6);
+    allPassed &= checkTest("El caramel superior d'una vertical de 4 també explota",
+        board.shouldExplode(col, 6));
 
     return allPassed;
 }
@@ -280,6 +271,8 @@ static bool testExplodeAndDropFall()
     allPassed &= checkTest("El caramel blau ha caigut al fons de la columna (y=4)",
         board.getCell(0, 4) != nullptr
         && board.getCell(0, 4)->getType() == CandyType::TYPE_BLUE);
+    allPassed &= checkTest("La posició per sobre del fons de la columna 0 és buida (y=3)",
+        board.getCell(0, 3) == nullptr);
 
     for (Candy* candy : exploded)
     {
@@ -311,35 +304,63 @@ static bool testExplodeAndDropChain()
     return allPassed;
 }
 
-static bool testDump()
+static bool testExplodeAndDropEmpty()
 {
-    std::cout << "--- dump ---\n";
+    std::cout << "--- explodeAndDrop: tauler buit ---\n";
+    bool allPassed = true;
+
+    Board board;
+    std::vector<Candy*> exploded = board.explodeAndDrop();
+
+    allPassed &= checkTest("Un tauler buit retorna un vector buit",
+        exploded.empty());
+
+    return allPassed;
+}
+
+static bool testDumpLoad()
+{
+    std::cout << "--- dump / load: round-trip ---\n";
     bool allPassed = true;
 
     const std::string savePath = getDataDirPath() + "test_board_save.txt";
 
+    // Ara que el bug del "-1 " està corregit, podem barrejar nullptr i caramels
     Board original(4, 4);
     original.setCell(new Candy(CandyType::TYPE_RED),    0, 3);
     original.setCell(new Candy(CandyType::TYPE_BLUE),   1, 3);
     original.setCell(new Candy(CandyType::TYPE_GREEN),  2, 3);
     original.setCell(new Candy(CandyType::TYPE_YELLOW), 3, 3);
     original.setCell(new Candy(CandyType::TYPE_PURPLE), 0, 2);
+    // La resta de cel·les queden nullptr (barreja de nullptr i caramels a la mateixa fila)
 
     bool dumpOk = original.dump(savePath);
     allPassed &= checkTest("dump retorna true", dumpOk);
 
-    return allPassed;
-}
+    Board loaded;
+    bool loadOk = loaded.load(savePath);
+    allPassed &= checkTest("load retorna true", loadOk);
 
-// NOTA: el test de load està desactivat perquè hi ha un bug al codi del teu amic:
-//   if (!in.is_open());   <-- el ';' fa que load retorni sempre false sense llegir res.
-// Un cop corregit el bug (treure el ';'), aquest test hauria de passar.
-static bool testLoad()
-{
-    std::cout << "--- load (DESACTIVAT: bug al codi) ---\n";
-    std::cout << "  [SKIP] load té un bug: 'if (!in.is_open());' retorna sempre false\n";
-    std::cout << "         Solució: canviar a 'if (!in.is_open())' sense el ';'\n";
-    return true;
+    allPassed &= checkTest("El tauler carregat té l'amplada correcta",
+        loaded.getWidth() == 4);
+    allPassed &= checkTest("El tauler carregat té l'alçada correcta",
+        loaded.getHeight() == 4);
+
+    allPassed &= checkTest("La cel·la (0,3) és VERMELLA després de carregar",
+        loaded.getCell(0, 3) != nullptr
+        && loaded.getCell(0, 3)->getType() == CandyType::TYPE_RED);
+    allPassed &= checkTest("La cel·la (1,3) és BLAVA després de carregar",
+        loaded.getCell(1, 3) != nullptr
+        && loaded.getCell(1, 3)->getType() == CandyType::TYPE_BLUE);
+    allPassed &= checkTest("La cel·la (0,2) és LILA després de carregar",
+        loaded.getCell(0, 2) != nullptr
+        && loaded.getCell(0, 2)->getType() == CandyType::TYPE_PURPLE);
+    allPassed &= checkTest("La cel·la buida (0,0) és nullptr després de carregar",
+        loaded.getCell(0, 0) == nullptr);
+    allPassed &= checkTest("La cel·la buida (1,2) és nullptr després de carregar",
+        loaded.getCell(1, 2) == nullptr);
+
+    return allPassed;
 }
 
 // ---------------------------------------------------------------------------
@@ -361,8 +382,8 @@ bool test()
     allPassed &= testExplodeAndDropSimple();
     allPassed &= testExplodeAndDropFall();
     allPassed &= testExplodeAndDropChain();
-    allPassed &= testDump();
-    allPassed &= testLoad();
+    allPassed &= testExplodeAndDropEmpty();
+    allPassed &= testDumpLoad();
 
     std::cout << "\n=== " << (allPassed ? "TOTS ELS TESTS HAN PASSAT" : "ALGUNS TESTS HAN FALLAT") << " ===\n\n";
 

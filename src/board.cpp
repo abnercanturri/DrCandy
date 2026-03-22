@@ -237,7 +237,7 @@ bool Board::dump(const std::string& output_path) const
                 out << (int)m_grid[y][x]->getType() << " ";
             else
                 //En cas de nullptr
-                out << "-1";
+                out << "-1 ";
         }
         //Salt de línia per cada fila
         out << endl;
