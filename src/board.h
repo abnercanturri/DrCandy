@@ -1,5 +1,9 @@
 /**
- * Game and pieces for the game.
+ * FITXER board.h
+ * AUTOR Marc Poll y Abner Canturri
+ * DATA 22/03/2026
+ * VERSIO 1
+ * Fitxer amb les definicions de les funcions de la classe board
  */
 #ifndef BOARD_H
 #define BOARD_H

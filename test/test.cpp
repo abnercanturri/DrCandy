@@ -1,3 +1,10 @@
+/**
+ * FITXER test.cpp
+ * AUTOR Marc Poll y Abner Canturri
+ * DATA 22/03/2026
+ * VERSIO 1
+ * Fitxer amb la classe test
+ */
 #include "test.h"
 
 #include <iostream>
