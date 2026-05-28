@@ -6,6 +6,7 @@
 
 #include "graphics.h"
 #include "controller.h"
+#include "board.h"
 
 /**
  * Main game class: keep track of the game state it. 
@@ -53,5 +54,23 @@ public:
 
     /// @return true if this game is equal to the other game (same board state and falling block)
     bool operator==(const Game& other) const;
+
+private:
+    Board m_board;                                          //tauler instanciat
+    Candy* m_fallingBlock[3];                               //Array 3 caramels que cauen
+    int m_blockX;                                           //Posició X (columna) del bloc
+    int m_blockY;                                           //Posició Y (fila) de la peça inferior del bloc
+
+    int m_frameCount;                                       //Comptador per saber quan ha de baixar el bloc (60 frames)
+    int m_score;                                            //Puntuació actual
+    bool m_gameOver;                                        //Bool per saber si s'ha perdut o no el joc
+
+    void handleInput(const Controller& controller);         //Gestiona el teclat
+    void applyGravity();                                    //Gestiona la caiguda i xocs
+    void spawnNewBlock();                                   //Crea el bloc de tres caramels amunt del tauler
+    void drawBoard(GraphicManager& graphics) const;         //Dibuixa la graella
+    void drawFallingBlock(GraphicManager& graphics) const;  //Dibuixa la fitxa actual
+    void drawUI(GraphicManager& graphics) const;            //Dibuixa marcadors i textos
+    void saveLoad(const Controller& controller);            //Gestiona guarrdat i càrrega
 };
 #endif
