@@ -64,6 +64,7 @@ private:
     int m_frameCount;                                       //Comptador per saber quan ha de baixar el bloc (60 frames)
     int m_score;                                            //Puntuació actual
     bool m_gameOver;                                        //Bool per saber si s'ha perdut o no el joc
+    bool m_paused;                                           //Bool per saber si el joc està o no en pausa
 
     void handleInput(const Controller& controller);         //Gestiona el teclat
     void applyGravity();                                    //Gestiona la caiguda i xocs
