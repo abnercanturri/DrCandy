@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include "util.h"
 
 Game::Game()
 {
@@ -479,7 +480,7 @@ void Game::saveLoad(const Controller& controller)
     if (controller.isKey2Pressed())
     {
         //Guardem el fitxer a data/save.txt
-        std::string savePath = "save.txt";
+        std::string savePath = getDataDirPath() + "save.txt";
 
         if (dump(savePath)) {
             std::cout << "Partida guardada correctament a: " << savePath << std::endl;
@@ -505,7 +506,7 @@ void Game::saveLoad(const Controller& controller)
     //CARREGAR PARTIDA (Tecla E)
     if (controller.isKey3Pressed())
     {
-        std::string loadPath = "save.txt";
+        std::string loadPath = getDataDirPath() + "save.txt";
 
         if (load(loadPath)) {
             std::cout << "Partida carregada correctament!" << std::endl;
