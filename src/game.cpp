@@ -17,6 +17,7 @@ Game::Game()
     m_frameCount = 0;
     m_score = 0;
     m_gameOver = false;
+    m_paused = false;
 
     for (int i = 0; i < 3; ++i)
     {
@@ -59,10 +60,18 @@ void Game::update(const Controller& controller)
 {
     // Implement your code here
     //Si hem perdut, congelem el joc i no fem res més
-    if (m_gameOver) return;
+    if (m_gameOver)
+        return;
+
+    if (controller.isKey4Pressed())
+        m_paused = !m_paused;
+    
+    saveLoad(controller);
+    
+    if (m_paused)
+        return;
 
     handleInput(controller);
-    saveLoad(controller);
     
     //GRAVETAT I CAIGUDA
     m_frameCount++;
@@ -456,6 +465,9 @@ void Game::drawUI(GraphicManager& graphics) const
     if (m_gameOver)
         //Si la partida ha acabat, mostrem GAME OVER en vermell gegant
         graphics.drawText("GAME OVER", 230, start_y - 80, 50, 255, 0, 0);
+    else if (m_paused)
+        //Si la partida està en pausa, mostrem el PAUSED en gran
+        graphics.drawText("PAUSED", 150, 280, 110, 0, 0, 0);
     else
         // Convertim el número m_score a text per poder-lo dibuixar
         graphics.drawText("Score: " + std::to_string(m_score), 450, 25, 40, 125, 200, 125);
@@ -466,17 +478,17 @@ void Game::saveLoad(const Controller& controller)
     //GUARDAR PARTIDA (Tecla W)
     if (controller.isKey2Pressed())
     {
-        //Com que l'executable ja està a dins de 'data', només cal posar el nom del fitxer!
+        //Guardem el fitxer a data/save.txt
         std::string savePath = "save.txt";
 
         if (dump(savePath)) {
             std::cout << "Partida guardada correctament a: " << savePath << std::endl;
 
             // --- TEST DE L'OPERADOR == ---
-            Game testGame;           // 1. Creem un joc nou i buit
-            testGame.load(savePath); // 2. Hi carreguem el fitxer que acabem de crear
+            Game testGame;           //Creem un joc nou i buit
+            testGame.load(savePath); //Hi carreguem el fitxer que acabem de crear
 
-            // 3. Comparem el joc actual (*this) amb el que acabem de carregar
+            //Comparem el joc actual amb el que acabem de carregar
             if (*this == testGame) {
                 std::cout << "TEST SUPERAT: L'operador == funciona com la seda!" << std::endl;
             }
