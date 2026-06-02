@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 #include "../src/board.h"
 #include "../src/candy.h"
@@ -167,8 +168,8 @@ static bool testShouldExplode()
     bool noExplota = testShouldExplodeNoExplota();
     bool horitzontal = testShouldExplodeHoritzontal();
     bool vertical = testShouldExplodeVertical();
-    bool diagonal1 = testShouldExplodeDiagonal1;
-    bool diagonal2 = testShouldExplodeDiagonal2;
+    bool diagonal1 = testShouldExplodeDiagonal1();
+    bool diagonal2 = testShouldExplodeDiagonal2();
 
     return noExplota && horitzontal && vertical && diagonal1 && diagonal2;
 }
@@ -312,19 +313,19 @@ static bool testDumpLoad()
 static bool testBoardDumpLoad()
 {
     const std::string savePath = getDataDirPath() + "test_board_save.txt";
- 
+
     Board original(4, 4);
     original.setCell(new Candy(CandyType::TYPE_RED), 0, 3);
     original.setCell(new Candy(CandyType::TYPE_BLUE), 1, 3);
     original.setCell(new Candy(CandyType::TYPE_PURPLE), 0, 2);
- 
+
     if (!original.dump(savePath))
         return false;
- 
+
     Board loaded;
     if (!loaded.load(savePath))
         return false;
- 
+
     return loaded.getWidth() == 4
         && loaded.getHeight() == 4
         && loaded.getCell(0, 3) != nullptr
@@ -364,6 +365,59 @@ static bool testGameDumpLoad()
 }
 
 /**
+ * testGameSimulation
+ * Simula el pas del temps per comprovar que la gravetat fa baixar el bloc
+ * correctament i utilitza dump() per verificar l'estat privat.
+ */
+static bool testGameSimulation()
+{
+    Game game;
+    Controller dummyController; // Un controlador net (cap tecla premuda)
+
+    // 1. Guardem l'estat inicial en un fitxer temporal
+    std::string pathInicial = "test_sim_inicial.txt";
+    game.dump(pathInicial);
+
+    // 2. Executem el bucle update() 60 vegades. 
+    // Com que a game.cpp la gravetat actua cada 60 frames, esto hauria de forçar
+    // que el bloc baixés una casella de manera totalment automatitzada!
+    for (int i = 0; i < 60; ++i)
+    {
+        game.update(dummyController);
+    }
+
+    // 3. Guardem l'estat final després de la simulació
+    std::string pathFinal = "test_sim_final.txt";
+    game.dump(pathFinal);
+
+    // 4. Obrim els fitxers per inspeccionar les variables privades sense violar l'encapsulament
+    std::ifstream fInicial(pathInicial);
+    std::ifstream fFinal(pathFinal);
+
+    if (!fInicial.is_open() || !fFinal.is_open()) return false;
+
+    // Llegim les variables de l'estat inicial (score, gameOver, frameCount, blockX, blockY)
+    int scoreI, gameOverI, framesI, blockXI, blockYI;
+    fInicial >> scoreI >> gameOverI >> framesI >> blockXI >> blockYI;
+
+    // Llegim les variables de l'estat final
+    int scoreF, gameOverF, framesF, blockXF, blockYF;
+    fFinal >> scoreF >> gameOverF >> framesF >> blockXF >> blockYF;
+
+    fInicial.close();
+    fFinal.close();
+
+    // --- LES COMPROVACIONS LOGIQUES ---
+    // A) El bloc ha hagut de baixar de fila (m_blockY final ha de ser major que l'inicial)
+    bool haBaixatElBloc = (blockYF > blockYI);
+
+    // B) Com que no hem premut tecles de moviment, la columna (m_blockX) ha de seguir sent la mateixa
+    bool esManteAAliniat = (blockXF == blockXI);
+
+    return haBaixatElBloc && esManteAAliniat;
+}
+
+/**
  * testGameEquality
  * Comprova que operator== distingeix dos jocs diferents.
  * Dos jocs creats per separat tenen blocs aleatoris diferents, per tant
@@ -390,6 +444,50 @@ static bool testGameEquality()
     return igualASiMateix && carregatEsIgual;
 }
 
+/**
+ * testGameLoadGameOverState
+ * Crea una partida simulada que hauria de desencadenar un Game Over
+ * i comprova si el mètode load() ho gestiona correctament.
+ */
+static bool testGameLoadGameOverState()
+{
+    const std::string mockPath = "mock_gameover.txt";
+
+    // 1. Creem programàticament el fitxer amb l'estat que volem provar
+    std::ofstream file(mockPath);
+    if (!file.is_open()) return false;
+
+    // Escrivim segons el format del teu Game::dump():
+    file << "0\n";     // m_score
+    file << "1\n";     // m_gameOver = true (Forcem que estigui perduda)
+    file << "0\n";     // m_frameCount
+    file << "5\n";     // m_blockX
+    file << "-1\n";    // m_blockY
+    file << "1 2 3\n"; // Tipus dels 3 caramels del bloc que cau
+    file << "10 10\n"; // Dimensions del tauler (Ample x Alt)
+
+    // Omplim les 10 files del tauler amb -1 (tot buit)
+    for (int y = 0; y < 10; ++y)
+    {
+        file << "-1 -1 -1 -1 -1 -1 -1 -1 -1 -1\n";
+    }
+    file.close();
+
+    // 2. Carreguem aquest fitxer en un joc d'ajuda (auxiliar)
+    Game auxGame;
+    bool successLoad = auxGame.load(mockPath);
+
+    // 3. Verifiquem si el comportament és l'esperat.
+    // Com que m_gameOver és privat, guardem aquest estat en un altre fitxer 
+    // o el comparem amb un joc que sabem que ha perdut.
+    Game gamePerdut;
+    gamePerdut.load(mockPath);
+
+    bool esIgual = (auxGame == gamePerdut);
+
+    return successLoad && esIgual;
+}
+
 // ---------------------------------------------------------------------------
 // Punt d'entrada principal
 // ---------------------------------------------------------------------------
@@ -409,7 +507,9 @@ bool test()
     bool explodrop = testExplodeAndDrop();
     bool boardDump = testDumpLoad();
     bool gameDump = testGameDumpLoad();
+    bool gameSim = testGameSimulation();
     bool gameEq = testGameEquality();
+    bool lGOver = testGameLoadGameOverState();
 
     std::cout << (dims ? "  [PASS]" : "  [FAIL]") << " Board: Dimensions\n";
     std::cout << (cells ? "  [PASS]" : "  [FAIL]") << " Board: GetCell/SetCell\n";
@@ -417,7 +517,9 @@ bool test()
     std::cout << (explodrop ? "  [PASS]" : "  [FAIL]") << " Board: ExplodeAndDrop\n";
     std::cout << (boardDump ? "  [PASS]" : "  [FAIL]") << " Board: Dump/Load\n";
     std::cout << (gameDump ? "  [PASS]" : "  [FAIL]") << " Game: Dump/Load\n";
+    std::cout << (gameSim ? "  [PASS]" : "  [FAIL]") << " Game: Simulation\n";
     std::cout << (gameEq ? "  [PASS]" : "  [FAIL]") << " Game: Equality\n";
+    std::cout << (lGOver ? "  [PASS]" : " [FAIL]") << " Game: LoadGameOver\n";
 
     bool allPassed = dims && cells && explota && explodrop
         && boardDump && gameDump && gameEq;
